@@ -56,12 +56,42 @@ public class InformixDialect extends Dialect {
 	public InformixDialect() {
 		super();
 		
-		registerCharacterTypeMappings();
 		registerNumericTypeMappings();
 		registerDateTimeTypeMappings();
 		registerBinaryTypeMappings();
+		registerCharacterTypeMappings();
 		
 		registerFunctions();
+	}
+	
+	protected void registerNumericTypeMappings() {
+		registerColumnType(Types.BIT, "smallint"); // Informix doesn't have a bit type
+		registerColumnType(Types.BOOLEAN, "boolean");
+		registerColumnType(Types.TINYINT, "smallint");
+		registerColumnType(Types.SMALLINT, "smallint");
+		registerColumnType(Types.INTEGER, "integer");
+		// Prefer bigint over int8 (conserves space, more standard)
+		registerColumnType(Types.BIGINT, "bigint"); // previously int8
+
+		registerColumnType(Types.FLOAT, "smallfloat");
+		registerColumnType(Types.DOUBLE, "float");
+		registerColumnType(Types.NUMERIC, "decimal"); // or MONEY
+		registerColumnType(Types.REAL, "smallfloat");
+		registerColumnType(Types.DECIMAL, "decimal");
+	}
+	
+	protected void registerDateTimeTypeMappings() {
+		registerColumnType(Types.DATE, "date");
+		registerColumnType(Types.TIME, "datetime hour to second");
+		registerColumnType(Types.TIMESTAMP, "datetime year to fraction(5)");
+	}
+	
+	protected void registerBinaryTypeMappings() {
+		registerColumnType(Types.BINARY, "byte");
+		// Prefer Smart-LOB types (CLOB and BLOB) over LOB types (TEXT and BYTE)
+		registerColumnType(Types.VARBINARY, "blob");
+		registerColumnType(Types.LONGVARBINARY, "blob"); // or BYTE
+		registerColumnType(Types.BLOB, "blob");
 	}
 	
 	protected void registerCharacterTypeMappings() {
@@ -73,37 +103,7 @@ public class InformixDialect extends Dialect {
 		registerColumnType(Types.LONGVARCHAR, "clob"); // or TEXT?
 		registerColumnType(Types.CLOB, "clob");
 	}
-
-	protected void registerNumericTypeMappings() {
-		registerColumnType(Types.BIT, "smallint"); // Informix doesn't have a bit type
-		registerColumnType(Types.TINYINT, "smallint");
-		registerColumnType(Types.SMALLINT, "smallint");
-		registerColumnType(Types.INTEGER, "integer");
-		// Prefer bigint over int8 (conserves space, more standard)
-		registerColumnType(Types.BIGINT, "bigint"); // previously int8
-
-		registerColumnType(Types.FLOAT, "smallfloat");
-		registerColumnType(Types.REAL, "smallfloat");
-		registerColumnType(Types.DOUBLE, "float");
-		registerColumnType(Types.NUMERIC, "decimal"); // or MONEY
-		registerColumnType(Types.DECIMAL, "decimal");
-	}
-
-	protected void registerDateTimeTypeMappings() {
-		registerColumnType(Types.DATE, "date");
-		registerColumnType(Types.TIME, "datetime hour to second");
-		registerColumnType(Types.TIMESTAMP, "datetime year to fraction(5)");
-	}
 	
-	protected void registerBinaryTypeMappings() {
-		registerColumnType(Types.BOOLEAN, "boolean");
-		registerColumnType(Types.BINARY, "byte");
-		// Prefer Smart-LOB types (CLOB and BLOB) over LOB types (TEXT and BYTE)
-		registerColumnType(Types.VARBINARY, "blob");
-		registerColumnType(Types.LONGVARBINARY, "blob"); // or BYTE
-		registerColumnType(Types.BLOB, "blob");
-	}
-
 	protected void registerFunctions() {
 		registerFunction( "concat", new VarArgsSQLFunction( StandardBasicTypes.STRING, "(", "||", ")" ) );
 		

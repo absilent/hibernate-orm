@@ -248,8 +248,8 @@ public class InformixDialect extends Dialect {
 
 	/**
 	 * Overrides {@link Dialect#supportsTemporaryTables()} to return
-	 * {@code true} when invoked.
-	 *
+	 * {@code true} since Informix does, in fact, support temporary tables.
+	 * 
 	 * @return {@code true} when invoked
 	 */
 	@Override
@@ -258,10 +258,10 @@ public class InformixDialect extends Dialect {
 	}
 
 	/**
-	 * Overrides {@link Dialect#getCreateTemporaryTableString()} to
-	 * return "{@code create temp table}" when invoked.
-	 *
-	 * @return "{@code create temp table}" when invoked
+	 * Overrides {@link Dialect#getCreateTemporaryTableString()} to return
+	 * {@code create temp table}.
+	 * 
+	 * @return {@code create temp table} when invoked
 	 */
 	@Override
 	public String getCreateTemporaryTableString() {

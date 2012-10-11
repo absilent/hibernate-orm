@@ -27,6 +27,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 
 import org.hibernate.MappingException;
+import org.hibernate.dialect.function.NoArgSQLFunction;
 import org.hibernate.dialect.function.VarArgsSQLFunction;
 import org.hibernate.exception.spi.TemplatedViolatedConstraintNameExtracter;
 import org.hibernate.exception.spi.ViolatedConstraintNameExtracter;
@@ -36,6 +37,7 @@ import org.hibernate.sql.ANSICaseFragment;
 import org.hibernate.sql.ANSIJoinFragment;
 import org.hibernate.sql.CaseFragment;
 import org.hibernate.sql.JoinFragment;
+import org.hibernate.type.DateType;
 import org.hibernate.type.StandardBasicTypes;
 
 /**
@@ -104,6 +106,18 @@ public class InformixDialect extends Dialect {
 
 	protected void registerFunctions() {
 		registerFunction( "concat", new VarArgsSQLFunction( StandardBasicTypes.STRING, "(", "||", ")" ) );
+		
+		if (Boolean.getBoolean("org.hibernate.dialect.InformixDialect.enableCurrentDateFunction")) {
+			if (Boolean.getBoolean("org.hibernate.dialect.InformixDialect.useSysdualForCurrentDateFunction")) {
+				// Alternate version of current_date using sysmaster's sysdual table to avoid using "first 1" or "distinct"
+				registerFunction("current_date", new NoArgSQLFunction("(select today from sysmaster:sysdual)", new DateType(), false));				
+			} else {
+				// Huge hack to combat the fact that Informix does not have a
+				// current_date function.  This will probably fail in weird edge
+				// cases.
+				registerFunction("current_date", new NoArgSQLFunction("(select first 1 today from informix.systables)", new DateType(), false));			
+			}
+		}
 	}
 	
 	// IDENTITY support ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

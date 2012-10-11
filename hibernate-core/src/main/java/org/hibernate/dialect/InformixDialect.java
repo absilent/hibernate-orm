@@ -374,21 +374,24 @@ public class InformixDialect extends Dialect {
 	public String getNoColumnsInsertString() {
 		return "values (0)";
 	}
-
+	
 	/**
-	 * The SQL literal value to which this database maps boolean values.
-	 * Informix uses "t" and "f" rather than "0" and "1" as the string
-	 * representation of boolean values.
+	 * Overrides {@link InformixDialect2#toBooleanValueString(boolean)} to return
+	 * {@code t} or {@code f}, not {@code 1} or {@code 0}.
 	 * 
-	 * @param bool
-	 *            The boolean value
-	 * @return The appropriate SQL literal.
+	 * @param value
+	 *            the {@code boolean} value to translate
+	 * 
+	 * @return {@code t} or {@code f} if {@code value} is {@code true} or
+	 *         {@code false} respectively
+	 * 
+	 * @see <a href="https://hibernate.onjira.com/browse/HHH-3551">HHH-3551</a>
 	 */
 	@Override
-	public String toBooleanValueString(boolean bool) {
-		return bool ? "t" : "f";
+	public String toBooleanValueString(final boolean value) {
+		return value ? "'t'" : "'f'";
 	}
-
+	
 	// DDL support ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	@Override
 	public String getAddColumnString() {

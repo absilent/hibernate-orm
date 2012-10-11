@@ -390,7 +390,7 @@ public class InformixDialect extends Dialect {
 	}
 	
 	/**
-	 * Overrides {@link InformixDialect2#toBooleanValueString(boolean)} to return
+	 * Overrides {@link InformixDialect#toBooleanValueString(boolean)} to return
 	 * {@code t} or {@code f}, not {@code 1} or {@code 0}.
 	 * 
 	 * @param value

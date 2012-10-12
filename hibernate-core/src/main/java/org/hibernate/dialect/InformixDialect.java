@@ -28,7 +28,9 @@ import java.sql.Types;
 
 import org.hibernate.MappingException;
 import org.hibernate.dialect.function.NoArgSQLFunction;
+import org.hibernate.dialect.function.NvlFunction;
 import org.hibernate.dialect.function.SQLFunctionTemplate;
+import org.hibernate.dialect.function.StandardAnsiSqlAggregationFunctions;
 import org.hibernate.dialect.function.StandardSQLFunction;
 import org.hibernate.dialect.function.VarArgsSQLFunction;
 import org.hibernate.exception.spi.TemplatedViolatedConstraintNameExtracter;
@@ -109,19 +111,158 @@ public class InformixDialect extends Dialect {
 	}
 
 	protected void registerFunctions() {
-		registerFunction("concat", new VarArgsSQLFunction( StandardBasicTypes.STRING, "(", "||", ")" ) );
+		// Algebraic Functions
+		registerFunction("abs", new StandardSQLFunction("abs"));
+		//registerFunction("cbrt", new SQLFunctionTemplate(StandardBasicTypes.DOUBLE, "root($1, 3)"));
+		registerFunction("ceil", new StandardSQLFunction("ceil"));
+		registerFunction("floor", new StandardSQLFunction("floor"));
+		registerFunction("mod", new StandardSQLFunction("mod", StandardBasicTypes.INTEGER));
+		registerFunction("pow", new StandardSQLFunction("pow", StandardBasicTypes.DOUBLE));
+		registerFunction("power", new StandardSQLFunction("power", StandardBasicTypes.DOUBLE));
+		registerFunction("root", new SQLFunctionTemplate(StandardBasicTypes.DOUBLE, "root($1, $2)"));
+		registerFunction("round", new StandardSQLFunction("round"));
+		registerFunction("trunc", new StandardSQLFunction("trunc"));
+
+		// Exponential and Logarithmic Functions
+		registerFunction("exp", new StandardSQLFunction("exp", StandardBasicTypes.DOUBLE));
+		registerFunction("ln", new StandardSQLFunction("ln", StandardBasicTypes.DOUBLE));
+		registerFunction("logn", new StandardSQLFunction("logn", StandardBasicTypes.DOUBLE));
+		registerFunction("log10", new StandardSQLFunction("log10", StandardBasicTypes.DOUBLE));
+
+		// Trigonometric Functions
+		registerFunction("acos", new StandardSQLFunction("acos", StandardBasicTypes.DOUBLE));
+		registerFunction("asin", new StandardSQLFunction("asin", StandardBasicTypes.DOUBLE));
+		registerFunction("atan", new StandardSQLFunction("atan", StandardBasicTypes.DOUBLE));
+		registerFunction("atan2", new StandardSQLFunction("atan", StandardBasicTypes.DOUBLE));
+		registerFunction("degrees", new StandardSQLFunction("degrees", StandardBasicTypes.DOUBLE));
+		registerFunction("cos", new StandardSQLFunction("cos", StandardBasicTypes.DOUBLE));
+		registerFunction("radians", new StandardSQLFunction("radians", StandardBasicTypes.DOUBLE));
+		registerFunction("sin", new StandardSQLFunction("sin", StandardBasicTypes.DOUBLE));
+		registerFunction("tan", new StandardSQLFunction("tan", StandardBasicTypes.DOUBLE));
+		// Hyperbolic functions are available in 11.70.xC6 and later
+		if (isVersionPost1170xC6()) {
+			registerFunction("acosh", new StandardSQLFunction("acosh", StandardBasicTypes.DOUBLE));
+			registerFunction("asinh", new StandardSQLFunction("asinh", StandardBasicTypes.DOUBLE));
+			registerFunction("atanh", new StandardSQLFunction("atanh", StandardBasicTypes.DOUBLE));
+			registerFunction("cosh", new StandardSQLFunction("cosh", StandardBasicTypes.DOUBLE));
+			registerFunction("sinh", new StandardSQLFunction("sinh", StandardBasicTypes.DOUBLE));
+			registerFunction("tanh", new StandardSQLFunction("tanh", StandardBasicTypes.DOUBLE));
+		}
+
+		// Aggregate Expressions
+		registerFunction("avg", new StandardAnsiSqlAggregationFunctions.AvgFunction());
+		registerFunction("count", new StandardAnsiSqlAggregationFunctions.CountFunction());
+		registerFunction("max", new StandardAnsiSqlAggregationFunctions.MaxFunction());
+		registerFunction("min", new StandardAnsiSqlAggregationFunctions.MinFunction());
+		registerFunction("sum", new StandardAnsiSqlAggregationFunctions.SumFunction());
+		registerFunction("range", new StandardSQLFunction("range"));
+		registerFunction("stdev", new StandardSQLFunction("stdev", StandardBasicTypes.DOUBLE)); // Informix only uses a single 'd' 
+		registerFunction("stddev", new StandardSQLFunction("stdev", StandardBasicTypes.DOUBLE)); // Alias for 'stdev'
+		registerFunction("variance", new StandardSQLFunction("variance", StandardBasicTypes.DOUBLE));
+
+		// Misc Math functions
+		if (isVersionPost1170xC6()) {
+			registerFunction("sign", new StandardSQLFunction("sign", StandardBasicTypes.INTEGER));
+		}
+
+		// Conversions
+		registerFunction("hex", new StandardSQLFunction("hex", StandardBasicTypes.STRING));
+		registerFunction("to_number", new StandardSQLFunction("to_number", StandardBasicTypes.BIG_DECIMAL));
+		
+		// String Manipulation Functions
+		registerFunction("ascii", new StandardSQLFunction("ascii", StandardBasicTypes.INTEGER));
+		registerFunction("concat", new VarArgsSQLFunction(StandardBasicTypes.STRING, "(", "||", ")"));
+		registerFunction("lpad", new StandardSQLFunction("lpad", StandardBasicTypes.STRING));
+		registerFunction("ltrim", new StandardSQLFunction("ltrim", StandardBasicTypes.STRING));
+		registerFunction("replace", new StandardSQLFunction("replace", StandardBasicTypes.STRING));
+		registerFunction("reverse", new StandardSQLFunction("reverse", StandardBasicTypes.STRING));
+		registerFunction("rpad", new StandardSQLFunction("rpad", StandardBasicTypes.STRING));
+		registerFunction("rtrim", new StandardSQLFunction("rtrim", StandardBasicTypes.STRING));
+		registerFunction("space", new StandardSQLFunction("space", StandardBasicTypes.STRING));
+		registerFunction("trim", new StandardSQLFunction("trim", StandardBasicTypes.STRING));
+
+		// 'translate' is equivalent to the UNIX 'tr' program
+		// registerFunction("translate", new StandardSQLFunction("translate", StandardBasicTypes.STRING));
+		
+		// Substring Functions
+		registerFunction("charindex", new SQLFunctionTemplate(StandardBasicTypes.INTEGER, "charindex(?1, ?2, ?3)" ) );
+		registerFunction("instr", new StandardSQLFunction("instr", StandardBasicTypes.INTEGER));
+		registerFunction("left", new StandardSQLFunction("left", StandardBasicTypes.STRING));
+		registerFunction("locate", new SQLFunctionTemplate(StandardBasicTypes.INTEGER, "instr(?2,?1)"));
+		registerFunction("right", new StandardSQLFunction("right", StandardBasicTypes.STRING));
+		registerFunction("substr", new StandardSQLFunction("substr", StandardBasicTypes.STRING));
+		registerFunction("substring", new SQLFunctionTemplate( StandardBasicTypes.STRING, "substring(?1 FROM ?2 FOR ?3)"));
+		registerFunction("substring_index", new SQLFunctionTemplate(StandardBasicTypes.STRING, "substring_index(?1, ?2, ?3)"));
+				
+		// Case Conversion Functions
+		registerFunction("upper", new StandardSQLFunction("upper"));
+		registerFunction("lower", new StandardSQLFunction("lower"));
+		registerFunction("initcap", new StandardSQLFunction("initcap"));
+
+		// Bitwise Logical Functions
+		// To correctly determine the return type, Hibernate would need to make
+		// available all arguments, not just the first, to
+		// SQLFunction#getReturnType as the return type depends on the wider of
+		// the first and second arguments.
+		registerFunction("bitand", new StandardSQLFunction("bitand"));
+		registerFunction("bitor", new StandardSQLFunction("bitor"));
+		registerFunction("bitxor", new StandardSQLFunction("bitxor"));
+		registerFunction("bitandnot", new StandardSQLFunction("bitandnot"));
+		registerFunction("bitnot", new StandardSQLFunction("bitnot"));
+		
+		// Length Functions
+		registerFunction("len", new StandardSQLFunction("len", StandardBasicTypes.INTEGER));
+		registerFunction("length", new StandardSQLFunction("length", StandardBasicTypes.INTEGER));
+		registerFunction("char_length", new StandardSQLFunction("char_length", StandardBasicTypes.INTEGER));
+		registerFunction("character_length", new StandardSQLFunction("character_length", StandardBasicTypes.INTEGER));
+		registerFunction("octet_length", new StandardSQLFunction("octet_length", StandardBasicTypes.INTEGER));
+
+		// Date & Time Functions
+		registerFunction("to_char", new StandardSQLFunction("to_char", StandardBasicTypes.STRING));
+		registerFunction("to_date", new StandardSQLFunction("to_date", StandardBasicTypes.TIMESTAMP));
+		registerFunction("last_day", new StandardSQLFunction("last_day", StandardBasicTypes.DATE));
+		registerFunction("add_months", new StandardSQLFunction("add_months", StandardBasicTypes.DATE));
+		registerFunction("months_between", new StandardSQLFunction("months_between", StandardBasicTypes.FLOAT));
+		registerFunction("next_day", new StandardSQLFunction("next_day", StandardBasicTypes.DATE));
+
+		// Time Component Extraction Functions
+		registerFunction("year", new SQLFunctionTemplate(StandardBasicTypes.INTEGER, "year(?1)"));
+		registerFunction("month", new SQLFunctionTemplate(StandardBasicTypes.INTEGER, "month(?1)"));
+		registerFunction("day", new SQLFunctionTemplate(StandardBasicTypes.INTEGER, "day(?1)"));
+		// hour, minute, and second functions are emulated
+		registerFunction("hour", new SQLFunctionTemplate(StandardBasicTypes.INTEGER, "extend(?1, hour to hour)::char(2)::integer"));
+		registerFunction("minute", new SQLFunctionTemplate(StandardBasicTypes.INTEGER, "extend(?1, minute to minute)::char(2)::integer"));
+		registerFunction("second", new SQLFunctionTemplate(StandardBasicTypes.INTEGER, "extend(?1, second to second)::char(2)::integer"));
+		registerFunction("quarter", new SQLFunctionTemplate(StandardBasicTypes.INTEGER, "trunc((month(?1)+2)/3)")); // may need to add ::integer at the end
 
 		if (Boolean.getBoolean("org.hibernate.dialect.InformixDialect.enableCurrentDateFunction")) {
 			if (Boolean.getBoolean("org.hibernate.dialect.InformixDialect.useSysdualForCurrentDateFunction")) {
-				// Alternate version of current_date using sysmaster's sysdual table to avoid using "first 1" or "distinct"
-				registerFunction("current_date", new NoArgSQLFunction("(select today from sysmaster:sysdual)", new DateType(), false));				
+				// Alternate version of current_date using sysmaster's sysdual
+				// table to avoid using "first 1" or "distinct"
+				registerFunction("current_date", new NoArgSQLFunction("(select today from sysmaster:sysdual)", new DateType(), false));
 			} else {
 				// Huge hack to combat the fact that Informix does not have a
-				// current_date function.  This will probably fail in weird edge
+				// current_date function. This will probably fail in weird edge
 				// cases.
-				registerFunction("current_date", new NoArgSQLFunction("(select first 1 today from informix.systables)", new DateType(), false));			
+				registerFunction("current_date", new NoArgSQLFunction("(select first 1 today from informix.systables)", new DateType(), false));
 			}
 		}
+
+		registerFunction("current_timestamp", new NoArgSQLFunction("select first 1 current from informix.systables", StandardBasicTypes.TIMESTAMP));
+		registerFunction("current_time", new NoArgSQLFunction( "select first 1 current hour to second from informix.systables", StandardBasicTypes.TIME));
+		
+		// Misc functions
+		registerFunction("coalesce", new NvlFunction());
+		registerFunction("nvl", new StandardSQLFunction("nvl"));
+		if (isVersionPost1170xC6()) {
+			registerFunction("nvl2", new StandardSQLFunction("nvl2"));
+		}
+
+		registerFunction("str", new StandardSQLFunction("to_char", StandardBasicTypes.STRING)); // str uses to_char
+	}
+	
+	private static boolean isVersionPost1170xC6() {
+		return Boolean.getBoolean("org.hibernate.dialect.InformixDialect.isVersion1170xC6");
 	}
 
 	// IDENTITY support ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
